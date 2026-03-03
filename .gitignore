@@ -1,0 +1,27 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and screenshots
+*.log
+screenshot_*.png
+debug_*.png
+error_*.png
+
+# Installer (don't upload large files)
+*.exe
