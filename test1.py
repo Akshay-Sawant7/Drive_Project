@@ -13,7 +13,7 @@ CHECK_INTERVAL = 1
 
 # ================= UTILS =================
 def log(msg):
-    print(f"🔹 {msg}")
+    print(f"[INFO] {msg}")
 
 def wait_for_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
     """
