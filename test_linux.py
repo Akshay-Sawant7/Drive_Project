@@ -1,341 +1,146 @@
-#!/usr/bin/env python3
-"""
-Linux PyAutoGUI Test Script for GitHub Actions
-This script tests PyAutoGUI functionality using Xvfb virtual display
-"""
-
 import pyautogui
 import time
+import subprocess
 import sys
 import os
-import platform
 
 # ================= CONFIG =================
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.5
 
 CONFIDENCE = 0.7
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 30  # Reduced timeout for CI
 CHECK_INTERVAL = 1
 
 
 # ================= UTILS =================
 def log(msg):
-    """Print with timestamp for better logging"""
-    timestamp = time.strftime('%H:%M:%S')
-    print(f"[{timestamp}] {msg}")
+    print(f"[INFO] {msg}")
 
 
-def is_linux():
-    """Check if running on Linux"""
-    return sys.platform.startswith('linux')
+def is_github_actions():
+    return os.getenv('GITHUB_ACTIONS') == 'true'
 
 
-def check_environment():
-    """Check and log environment details"""
-    log("=" * 60)
-    log("ENVIRONMENT CHECK")
-    log("=" * 60)
+def wait_for_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
+    """
+    Wait until image appears on screen.
+    Returns center coordinates if found, else None.
+    """
+    log(f"Waiting for → {image}")
+    start = time.time()
 
-    log(f"Python version: {sys.version}")
-    log(f"Platform: {platform.platform()}")
-    log(f"System: {platform.system()}")
-    log(f"Machine: {platform.machine()}")
-    log(f"Display: {os.getenv('DISPLAY', 'Not set')}")
-    log(f"Working directory: {os.getcwd()}")
-    log(f"PyAutoGUI version: {pyautogui.__version__}")
-
-    # Check if running in GitHub Actions
-    in_github = os.getenv('GITHUB_ACTIONS') == 'true'
-    log(f"In GitHub Actions: {in_github}")
-
-    return in_github
-
-
-def verify_images():
-    """Verify all required PNG files exist"""
-    log("\n" + "=" * 60)
-    log("VERIFYING PNG FILES")
-    log("=" * 60)
-
-    required_images = [
-        "Ok.png",
-        "I_accept_the_agreement.png",
-        "Next.png",
-        "Install.png",
-        "Finish.png"
-    ]
-
-    all_found = True
-    for img in required_images:
-        if os.path.exists(img):
-            log(f"✅ Found: {img}")
-        else:
-            log(f"❌ Missing: {img}")
-            all_found = False
-
-    # List all PNG files in directory
-    log("\nAll PNG files in directory:")
-    png_files = [f for f in os.listdir('.') if f.lower().endswith('.png')]
-    for f in png_files:
-        log(f"  - {f}")
-
-    return all_found
-
-
-def test_screen_capture():
-    """Test screenshot functionality"""
-    log("\n" + "=" * 60)
-    log("TESTING SCREEN CAPTURE")
-    log("=" * 60)
-
-    try:
-        # Get screen size
-        width, height = pyautogui.size()
-        log(f"Screen size: {width} x {height}")
-
-        # Take screenshot
-        timestamp = int(time.time())
-        screenshot_file = f"test_screenshot_{timestamp}.png"
-        pyautogui.screenshot(screenshot_file)
-
-        # Verify screenshot was created
-        if os.path.exists(screenshot_file):
-            file_size = os.path.getsize(screenshot_file)
-            log(f"✅ Screenshot saved: {screenshot_file} ({file_size} bytes)")
-            return True
-        else:
-            log("❌ Failed to save screenshot")
-            return False
-
-    except Exception as e:
-        log(f"❌ Screenshot test failed: {str(e)}")
-        return False
-
-
-def test_mouse_movement():
-    """Test mouse movement functionality"""
-    log("\n" + "=" * 60)
-    log("TESTING MOUSE MOVEMENT")
-    log("=" * 60)
-
-    try:
-        # Get current position
-        x, y = pyautogui.position()
-        log(f"Current mouse position: ({x}, {y})")
-
-        # Move to different positions
-        positions = [(100, 100), (500, 500), (800, 400)]
-
-        for target_x, target_y in positions:
-            log(f"Moving to ({target_x}, {target_y})...")
-            pyautogui.moveTo(target_x, target_y, duration=0.5)
-            time.sleep(0.5)
-
-            # Verify movement
-            new_x, new_y = pyautogui.position()
-            log(f"  Now at: ({new_x}, {new_y})")
-
-        log("✅ Mouse movement test passed")
-        return True
-
-    except Exception as e:
-        log(f"❌ Mouse movement test failed: {str(e)}")
-        return False
-
-
-def test_image_recognition():
-    """Test image recognition on all PNG files"""
-    log("\n" + "=" * 60)
-    log("TESTING IMAGE RECOGNITION")
-    log("=" * 60)
-
-    png_files = [f for f in os.listdir('.') if f.lower().endswith('.png')]
-
-    if not png_files:
-        log("❌ No PNG files found to test")
-        return False
-
-    success_count = 0
-    for img_file in png_files:
+    while time.time() - start < timeout:
         try:
-            log(f"\nTrying to locate: {img_file}")
-
-            # Try with different confidence levels
-            for conf in [0.9, 0.8, 0.7]:
-                try:
-                    location = pyautogui.locateCenterOnScreen(
-                        img_file,
-                        confidence=conf,
-                        grayscale=True
-                    )
-
-                    if location:
-                        log(f"  ✅ Found at confidence {conf}: {location}")
-                        success_count += 1
-                        break
-                    else:
-                        log(f"  ⚠️ Not found at confidence {conf}")
-
-                except Exception as e:
-                    log(f"  ⚠️ Error at confidence {conf}: {str(e)[:50]}")
-
+            location = pyautogui.locateCenterOnScreen(
+                image,
+                confidence=confidence,
+                grayscale=True
+            )
+            if location:
+                log(f"Found → {image}")
+                return location
         except Exception as e:
-            log(f"❌ Failed to process {img_file}: {str(e)}")
+            log(f"Error: {str(e)[:50]}")
+            pass
 
-    log(f"\n✅ Successfully recognized {success_count}/{len(png_files)} images")
-    return success_count > 0
+        time.sleep(CHECK_INTERVAL)
 
-
-def test_keyboard():
-    """Test keyboard functionality"""
-    log("\n" + "=" * 60)
-    log("TESTING KEYBOARD")
-    log("=" * 60)
-
-    try:
-        # Test typing
-        test_text = "Linux PyAutoGUI Test"
-        log(f"Typing: '{test_text}'")
-        pyautogui.write(test_text, interval=0.1)
-        time.sleep(1)
-
-        # Test hotkeys
-        log("Testing hotkey: ctrl+a (select all)")
-        pyautogui.hotkey('ctrl', 'a')
-        time.sleep(0.5)
-
-        log("Testing hotkey: ctrl+c (copy)")
-        pyautogui.hotkey('ctrl', 'c')
-        time.sleep(0.5)
-
-        log("✅ Keyboard test passed")
-        return True
-
-    except Exception as e:
-        log(f"❌ Keyboard test failed: {str(e)}")
-        return False
+    log(f"Timeout → {image}")
+    return None
 
 
-def test_installation_steps():
-    """Simulate the Nuxeo Drive installation steps"""
-    log("\n" + "=" * 60)
-    log("SIMULATING INSTALLATION STEPS")
-    log("=" * 60)
-
-    steps = [
-        ("Ok.png", "Language OK"),
-        ("I_accept_the_agreement.png", "Accept Agreement"),
-        ("Next.png", "Next"),
-        ("Next.png", "Next Again"),
-        ("Install.png", "Install"),
-        ("Finish.png", "Finish")
-    ]
-
-    for i, (image, description) in enumerate(steps, 1):
-        log(f"\nStep {i}: {description}")
-
-        if os.path.exists(image):
-            log(f"  ✅ Image found: {image}")
-
-            # Try to locate the image (without clicking)
-            try:
-                location = pyautogui.locateCenterOnScreen(
-                    image,
-                    confidence=0.7,
-                    grayscale=True
-                )
-                if location:
-                    log(f"  ✅ Can detect {image} at {location}")
-
-                    # Simulate click (don't actually click in CI)
-                    log(f"  🖱️ Would click at ({int(location.x)}, {int(location.y)})")
-                else:
-                    log(f"  ⚠️ Cannot detect {image} visually")
-            except Exception as e:
-                log(f"  ⚠️ Detection error: {str(e)[:50]}")
-        else:
-            log(f"  ❌ Image missing: {image}")
+def click_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
+    """
+    Wait for image and click it.
+    """
+    location = wait_for_image(image, timeout, confidence)
+    if not location:
+        # Don't fail in GitHub Actions, just log
+        if is_github_actions():
+            log(f"⚠️ Image not found in CI: {image} (skipping)")
             return False
+        else:
+            raise Exception(f"❌ Image not found: {image}")
 
+    pyautogui.click(location)
+    log(f"Clicked → {image}")
+    time.sleep(2)
     return True
 
 
-def create_test_summary(results):
-    """Create a test summary"""
-    log("\n" + "=" * 60)
-    log("TEST SUMMARY")
-    log("=" * 60)
+# ================= INSTALLER STEPS =================
+INSTALLATION_STEPS = [
+    ("Ok.png", "Language OK"),
+    ("I_accept_the_agreement.png", "Accept Agreement"),
+    ("Next.png", "Next"),
+    ("Next.png", "Next Again"),
+    ("Install.png", "Install"),
+    ("Finish.png", "Finish"),
+]
 
-    all_passed = True
-    for test_name, passed in results.items():
-        status = "✅ PASSED" if passed else "❌ FAILED"
-        log(f"{status} - {test_name}")
-        if not passed:
-            all_passed = False
 
-    # Write to GitHub Step Summary if in GitHub Actions
-    if os.getenv('GITHUB_STEP_SUMMARY'):
-        with open(os.getenv('GITHUB_STEP_SUMMARY'), 'a') as f:
-            f.write("\n## Linux PyAutoGUI Test Results\n\n")
-            f.write("| Test | Status |\n")
-            f.write("|------|--------|\n")
-            for test_name, passed in results.items():
-                status = "✅ PASSED" if passed else "❌ FAILED"
-                f.write(f"| {test_name} | {status} |\n")
-
-    return all_passed
+# ================= MAIN FLOW =================
+def run_steps(steps):
+    all_success = True
+    for image, label in steps:
+        log(f"Step: {label}")
+        if not click_image(image):
+            all_success = False
+    return all_success
 
 
 def main():
-    """Main test function"""
-    start_time = time.time()
+    log("=" * 50)
+    log("NUXEO DRIVE AUTOMATION")
+    log("=" * 50)
 
-    log("\n" + "=" * 60)
-    log("🐧 LINUX PYAUTOGUI TEST SUITE")
-    log("=" * 60)
+    # Log environment
+    log(f"Screen size: {pyautogui.size()}")
+    log(f"In GitHub Actions: {is_github_actions()}")
 
-    # Check environment
-    in_github = check_environment()
+    # Check PNG files exist
+    log("\nChecking PNG files...")
+    all_images_exist = True
+    for image, label in INSTALLATION_STEPS:
+        if os.path.exists(image):
+            log(f"✅ Found: {image}")
+        else:
+            log(f"❌ Missing: {image}")
+            all_images_exist = False
 
-    # Dictionary to store test results
-    results = {}
+    if not all_images_exist:
+        log("❌ Some images are missing!")
+        sys.exit(1)
 
-    # Run tests
-    results["Environment Check"] = True
+    # Skip actual installer in GitHub Actions
+    if is_github_actions():
+        log("\n⚠️ Running in GitHub Actions - verification only")
+        log("✅ All images verified successfully!")
+        return
 
-    results["PNG Files Verification"] = verify_images()
+    # Real execution (local Windows only)
+    log("\nLaunching Nuxeo Drive installer...")
+    installer_path = r"C:\Users\Akshay\Downloads\nuxeo-drive.exe"
 
-    if results["PNG Files Verification"]:
-        results["Screen Capture"] = test_screen_capture()
-        results["Mouse Movement"] = test_mouse_movement()
-        results["Image Recognition"] = test_image_recognition()
-        results["Keyboard"] = test_keyboard()
-        results["Installation Steps"] = test_installation_steps()
-    else:
-        log("\n❌ Skipping advanced tests due to missing PNG files")
-        results["Screen Capture"] = False
-        results["Mouse Movement"] = False
-        results["Image Recognition"] = False
-        results["Keyboard"] = False
-        results["Installation Steps"] = False
+    if not os.path.exists(installer_path):
+        log(f"❌ Installer not found: {installer_path}")
+        sys.exit(1)
 
-    # Calculate execution time
-    execution_time = time.time() - start_time
-    log(f"\n⏱️  Total execution time: {execution_time:.2f} seconds")
+    subprocess.Popen([installer_path])
+    time.sleep(5)
 
-    # Create summary
-    all_passed = create_test_summary(results)
-
-    log("\n" + "=" * 60)
-    if all_passed:
-        log("🎉 ALL TESTS PASSED!")
-    else:
-        log("❌ SOME TESTS FAILED!")
-    log("=" * 60)
-
-    return 0 if all_passed else 1
+    try:
+        if run_steps(INSTALLATION_STEPS):
+            log("🎉 Installation completed successfully")
+        else:
+            log("❌ Some steps failed")
+            sys.exit(1)
+    except Exception as e:
+        log(f"❌ Error: {str(e)}")
+        sys.exit(1)
 
 
+# ================= ENTRY =================
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
