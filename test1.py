@@ -2,6 +2,7 @@ import pyautogui
 import time
 import subprocess
 import sys
+import os
 
 # ================= CONFIG =================
 pyautogui.FAILSAFE = True
@@ -11,16 +12,18 @@ CONFIDENCE = 0.7
 DEFAULT_TIMEOUT = 90
 CHECK_INTERVAL = 1
 
+
 # ================= UTILS =================
 def log(msg):
     print(f"[INFO] {msg}")
+
 
 def wait_for_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
     """
     Wait until image appears on screen.
     Returns center coordinates if found, else None.
     """
-    log(f"Waiting for → {image}")
+    log(f"Waiting for: {image}")
     start = time.time()
 
     while time.time() - start < timeout:
@@ -31,14 +34,14 @@ def wait_for_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
                 grayscale=True
             )
             if location:
-                log(f"Found → {image}")
+                log(f"Found: {image}")
                 return location
         except Exception:
             pass
 
         time.sleep(CHECK_INTERVAL)
 
-    log(f"Timeout → {image}")
+    log(f"Timeout: {image}")
     return None
 
 
@@ -48,10 +51,10 @@ def click_image(image, timeout=DEFAULT_TIMEOUT, confidence=CONFIDENCE):
     """
     location = wait_for_image(image, timeout, confidence)
     if not location:
-        raise Exception(f"❌ Image not found: {image}")
+        raise Exception(f"Image not found: {image}")
 
     pyautogui.click(location)
-    log(f"Clicked → {image}")
+    log(f"Clicked: {image}")
     time.sleep(2)
 
 
@@ -62,8 +65,9 @@ INSTALLATION_STEPS = [
     ("Next.png", "Next"),
     ("Next.png", "Next Again"),
     ("Install.png", "Install"),
-    ("Finish.png", "Install"),
+    ("Finish.png", "Finish"),
 ]
+
 
 # ================= MAIN FLOW =================
 def run_steps(steps):
@@ -73,19 +77,27 @@ def run_steps(steps):
 
 
 def main():
-    log("Launching Nuxeo Drive installer...")
-    subprocess.Popen(
-        r"C:\Users\Akshay\Downloads\nuxeo-drive.exe"
-    )
+    log("=" * 50)
+    log("NUXEO DRIVE AUTOMATION")
+    log("=" * 50)
 
-    time.sleep(5)  # installer initial load
+    log("Launching Nuxeo Drive installer...")
+
+    installer_path = r"C:\Users\Akshay\Downloads\nuxeo-drive.exe"
+
+    if os.path.exists(installer_path):
+        subprocess.Popen([installer_path])
+        time.sleep(5)
+    else:
+        log(f"Installer not found at: {installer_path}")
+        log("Please check the path")
 
     try:
         run_steps(INSTALLATION_STEPS)
-        log("🎉 Installation completed successfully")
+        log("Installation completed successfully")
 
     except Exception as e:
-        log(str(e))
+        log(f"Error: {str(e)}")
         sys.exit(1)
 
 

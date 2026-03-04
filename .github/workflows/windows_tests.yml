@@ -7,18 +7,16 @@ on:
 
 jobs:
   test-windows:
-    runs-on: self-hosted
+    runs-on: self-hosted  # Uses your existing runner
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # NO pip install, NO python setup, NOTHING else
-
-      - name: Run test1.py directly
+      # No setup-python needed - using your system Python
+      - name: Run with Python 3.11
         run: |
-          echo "🚀 Running test1.py..."
-          python test1.py
+          echo "🚀 Running with Python 3.11..."
+          C:\Users\Akshay\AppData\Local\Programs\Python\Python311\python.exe test1.py
         shell: cmd
 
       - name: Upload artifacts
