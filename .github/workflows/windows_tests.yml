@@ -3,8 +3,6 @@ name: Windows PyAutoGUI Tests
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -15,27 +13,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      # ❌ REMOVE the setup-python step entirely
+      # - uses: actions/setup-python@v5  ← DELETE THIS
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          # Use the Python that's already on your system
+          python -m pip install --upgrade pip
           pip install pyautogui opencv-python pillow
+        shell: cmd  # Use cmd instead of PowerShell to avoid execution policy
 
       - name: List files
         run: |
-          Write-Host "=== Python Files ==="
-          Get-ChildItem -Filter *.py
-          Write-Host "=== PNG Files ==="
-          Get-ChildItem -Filter *.png
+          dir *.py
+          dir *.png
+        shell: cmd
 
       - name: Run PyAutoGUI test
         run: |
-          Write-Host "🚀 Starting Windows tests on self-hosted runner..."
-          python test1.py
+          echo "🚀 Starting Windows tests on self-hosted runner..."
+          python test1.py  # Or test_linux.py - whatever your filename is
+        shell: cmd
 
       - name: Upload artifacts
         if: always()
