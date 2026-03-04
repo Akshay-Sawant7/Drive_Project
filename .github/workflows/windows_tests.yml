@@ -1,0 +1,48 @@
+name: Windows PyAutoGUI Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-windows:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyautogui opencv-python pillow
+
+      - name: List files
+        run: |
+          Write-Host "=== Python Files ==="
+          Get-ChildItem -Filter *.py
+          Write-Host "=== PNG Files ==="
+          Get-ChildItem -Filter *.png
+
+      - name: Run PyAutoGUI test
+        run: |
+          Write-Host "🚀 Starting Windows tests on self-hosted runner..."
+          python test1.py
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-results
+          path: |
+            *.png
+            *.log
+          if-no-files-found: ignore
