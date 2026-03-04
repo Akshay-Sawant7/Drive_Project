@@ -13,26 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ❌ REMOVE the setup-python step entirely
-      # - uses: actions/setup-python@v5  ← DELETE THIS
+      # NO pip install, NO python setup, NOTHING else
 
-      - name: Install dependencies
+      - name: Run test1.py directly
         run: |
-          # Use the Python that's already on your system
-          python -m pip install --upgrade pip
-          pip install pyautogui opencv-python pillow
-        shell: cmd  # Use cmd instead of PowerShell to avoid execution policy
-
-      - name: List files
-        run: |
-          dir *.py
-          dir *.png
-        shell: cmd
-
-      - name: Run PyAutoGUI test
-        run: |
-          echo "🚀 Starting Windows tests on self-hosted runner..."
-          python test1.py  # Or test_linux.py - whatever your filename is
+          echo "🚀 Running test1.py..."
+          python test1.py
         shell: cmd
 
       - name: Upload artifacts
